@@ -178,3 +178,45 @@ end)
             end
         })
 
+        function  JumpPower()
+            local Slider = Tabs.Main:AddSlider("Slider", {
+                Title = "JumpPower",
+                Description = "",
+                Default = 16,
+                Min = 0,
+                Max = 1000,
+                Rounding = 1,
+                Callback = function(Value)
+                    print("Slider was changed:", Value)
+                end
+            })
+    
+            Slider:OnChanged(function(Value)
+                player.Character.Humanoid.JumpPower = Value
+            end)
+            
+            Slider:SetValue(16)
+        end
+        JumpPower()
+        
+        function WalkSpeed()
+            local Slider2 = Tabs.Main:AddSlider("Slider2", {
+                Title = "WalkSpeed",
+                Description = "",
+                Default = 16,
+                Min = 0,
+                Max = 1000,
+                Rounding = 1,
+                Callback = function(Value)
+                    print("Slider was changed:", Value)
+                end
+            })
+        
+            Slider2:OnChanged(function(Value)
+                player.Character.Humanoid.WalkSpeed = Value
+            end)
+        
+            Slider2:SetValue(16)
+        end
+        WalkSpeed()
+
