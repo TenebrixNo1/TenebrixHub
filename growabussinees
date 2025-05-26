@@ -1,0 +1,180 @@
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+local Window = Fluent:CreateWindow({
+    Title = "TenebrixHub" .. "V1",
+    SubTitle = "by Tenebrix",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true, -- The blur may be detectable, setting this to false disables blur entirely
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl -- Used when theres no MinimizeKeybind
+})
+
+--Fluent provides Lucide Icons https://lucide.dev/icons/ for the tabs, icons are optional
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main", Icon = "" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+}
+
+local Options = Fluent.Options
+
+local player = game:GetService("Players").LocalPlayer
+
+local Toggle = Tabs.Main:AddToggle("MyToggle", {Title = "Auto Collect", Default = false })
+
+    Toggle:OnChanged(function()
+        _G.AutoCollect = Options.MyToggle.Value
+    end)
+
+    Options.MyToggle:SetValue(false)
+
+
+    spawn(function()
+        while task.wait(0.1) do
+            if _G.AutoCollect then
+                for _, v in pairs(workspace.PlacedEmployees:GetChildren()) do
+                    local prompt = v:FindFirstChild("CollectCash") and v.CollectCash:FindFirstChild("ProximityPrompt")
+                    if prompt then
+                        -- ✅ เพิ่มระยะก่อน
+                        prompt.MaxActivationDistance = 10000
+                        
+                        fireproximityprompt(prompt)
+                    end
+                end
+            end
+        end
+    end)
+    
+
+
+ tables = {}
+ for _,Work in pairs(game:GetService("ReplicatedStorage").EmployeeModels:GetChildren()) do
+     table.insert(tables,Work.Name)
+ end
+
+ local Dropdown = Tabs.Main:AddDropdown("Dropdown", {
+    Title = "Select Worker",
+    Values = tables,
+    Multi = false,
+    Default = 1,
+})
+
+Dropdown:SetValue("four")
+
+Dropdown:OnChanged(function(Value)
+    _G.Select = Value
+end)
+
+
+local Toggle2 = Tabs.Main:AddToggle("MyToggle2", {Title = "Auto Buy", Default = false })
+
+    Toggle2:OnChanged(function()
+        _G.BuyWorker = Options.MyToggle2.Value
+    end)
+
+    Options.MyToggle2:SetValue(false)
+
+spawn(function ()
+    while task.wait(0.1) do 
+        if _G.BuyWorker then
+            for _, v in pairs(game:GetService("ReplicatedStorage").EmployeeModels:GetChildren()) do
+                local idValue = v:FindFirstChildWhichIsA("StringValue")
+                local trueName = idValue and idValue.Value or v.Name
+    
+                if trueName:gsub("%s+", "") == _G.Select:gsub("%s+", "") then
+                    game:GetService("ReplicatedStorage").RemoteEvents.BuyEmployee:FireServer(trueName)
+                end
+            end
+        end
+    end
+ end)
+
+
+
+local Toggle3 = Tabs.Main:AddToggle("MyToggle3", {
+    Title = "Auto Place",
+    Default = false
+})
+
+Toggle3:OnChanged(function()
+    _G.AutoPlace = Options.MyToggle3.Value
+end)
+
+Options.MyToggle3:SetValue(false)
+
+spawn(function()
+    while task.wait(0.1) do
+        if not _G.AutoPlace then continue end
+
+        local character = player.Character
+        local origin = character and character:FindFirstChild("HumanoidRootPart")
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+        if origin and humanoid then
+            for _, tool in pairs(player.Backpack:GetChildren()) do
+                if not _G.AutoPlace then break end
+
+                if tool:IsA("Tool") and tool.Name ~= "Pick Up" then
+                    humanoid:EquipTool(tool)
+
+                    -- ✅ เช็กว่า Equip สำเร็จจริงก่อนวาง
+                    local start = tick()
+                    repeat task.wait()
+                    until tool.Parent == character or tick() - start > 1
+
+                    if tool.Parent ~= character then
+                        warn("Equip ไม่สำเร็จสำหรับ: " .. tool.Name)
+                        continue
+                    end
+
+                    local randomOffset = Vector3.new(
+                        math.random(-70, 70), 0,
+                        math.random(-70, 70)
+                    )
+                    local placePosition = origin.Position + randomOffset
+                    local args = {
+                        tool.Name,
+                        "",
+                        CFrame.new(placePosition)
+                    }
+
+                    game:GetService("ReplicatedStorage").RemoteEvents.PlaceEmployee:FireServer(unpack(args))
+                    task.wait(0.2)
+                end
+            end
+        end
+    end
+end)
+
+
+
+ 
+        Tabs.Main:AddButton({
+            Title = "Sell All",
+            Description = "Sell All Worker In Your Place",
+            Callback = function()
+                Window:Dialog({
+                    Title = "Are you sure?",
+                    Content = "Where is omniman!",
+                    Buttons = {
+                        {
+                            Title = "Confirm",
+                            Callback = function()
+                                for _,v in pairs(workspace.PlacedEmployees:GetChildren()) do
+                                    game:GetService("ReplicatedStorage").RemoteEvents.SellEmployee:FireServer(v)
+                                end
+                            end
+                        },
+                        {
+                            Title = "Cancel",
+                            Callback = function()
+                                print("Cancelled the dialog.")
+                            end
+                        }
+                    }
+                })
+            end
+        })
+
